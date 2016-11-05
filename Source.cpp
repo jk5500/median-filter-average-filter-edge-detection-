@@ -4,63 +4,92 @@
 using namespace std;
 using namespace cv;
 
-
-void insertionsort(int A[]) {
-
-	for (int i = 0; i < 9; i++) {
-
-		int j = i;
-
-		while (j > 0 && A[j - 1]> A[j]) {
-
-			int temp = A[j-1];
-			A[j - 1] = A[j];
-			A[j] = temp;
-			j--;
-
-		}
-	}
-}
-
-
-
-
 int main() {
 
-	Mat image;
 
-	image = imread("C:\\Users\\kamal\\Documents\\Visual Studio 2015\\Projects\\median_filter\\data\\lena.jpg", CV_LOAD_IMAGE_GRAYSCALE);
-	namedWindow("original image");
-	imshow("original image", image);
+	Mat image1;
 
-	Mat dst;
-	dst = image.clone();
-	
-	int value[9];
-	for (int a = 1; a < image.rows-1; a++) {
-		for (int b = 1; b < image.cols-1; b++) {
-			value[0] = image.at<uchar>(a - 1, b - 1);
-			value[1] = image.at < uchar>(a, b- 1);
-			value[2] = image.at<uchar>(a + 1, b - 1);
-			value[3] = image.at<uchar>(a-1, b );
-			value[4] = image.at<uchar>(a , b );
-			value[5] = image.at<uchar>(a + 1, b );
-			value[6] = image.at<uchar>(a - 1, b + 1);
-			value[7] = image.at<uchar>(a , b +1);
-			value[8] = image.at<uchar>(a + 1, b + 1);
-			insertionsort(value);
+	//image = imread("C:\\Users\\kamal\\Documents\\Visual Studio 2015\\Projects\\hist equ\\data\\lena.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+	//namedWindow("original image");
+	//imshow("original image", image);
+	VideoCapture cap;
+	cap.open(0);
+	namedWindow("video capture ", 1);
+	while (1) {
+		cap >> image1;
+		Mat image;
+		cvtColor(image1, image, CV_BGR2GRAY);
+		imshow("captured video image", image);
 
-			dst.at<uchar>(a,b) = value[5];
-
-
-
-
+		int intensity[256];
+		for (int i = 0; i < 256; i++) {
+			intensity[i] = 0;
 		}
+		for (int x = 0; x < image.rows; x++) {
+			for (int y = 0; y < image.cols; y++) {
+
+
+				intensity[(int)image.at<uchar>(x, y)]++;
+
+			}
+		}
+
+		//for (int i = 0; i < 256; i++) {
+			//cout << intensity[i] << " , ";
+		//}
+
+
+		int cdf[256];
+		for (int i = 0; i < 256; i++) {
+			cdf[i] = 0;
+		}
+
+		int value = 0;
+		for (int i = 1; i < 256; i++) {
+			value += intensity[i];
+			cdf[i] = value;
+		}
+
+		int min = 10000000000;
+		for (int i = 0; i < 256; i++) {
+			if (min > cdf[i]) {
+				min = cdf[i];
+			}
+		}
+		//cout << "minimum value " << min << endl;
+		if (min == 0) {
+			min = 1;
+		}
+	//	for (int i = 0; i < 256; i++) {
+		//	cout << cdf[i] << " , ";
+	//	}
+
+		int size = image.rows * image.cols;
+		float alpha = 255.0 / (size - min);
+
+		int hvalue[256];
+		for (int i = 0; i < 256; i++)
+		{
+			hvalue[i] = cvRound((cdf[i] - min) * alpha);
+		}
+
+
+		//for (int i = 0; i < 256; i++) {
+		//	cout << hvalue[i] << " , ";
+	//	}
+		Mat newimage = image.clone();
+
+		for (int a = 0; a < image.rows; a++) {
+			for (int b = 0; b < image.cols; b++) {
+				newimage.at<uchar>(a, b) = saturate_cast<uchar>(hvalue[image.at<uchar>(a, b)]);
+			}
+		}
+
+
+
+		namedWindow("final image");
+		imshow("final image", newimage);
+		waitKey(33);
 	}
-
-	namedWindow("final image");
-	imshow("final image", dst);
-
-	waitKey();
 	return 0;
 }
